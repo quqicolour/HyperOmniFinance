@@ -1,0 +1,18 @@
+{
+  "name": "hardhat-project",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^0.15.6",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.11",
+    "@nomicfoundation/ignition-core": "^0.15.6",
+    "@vizing/contracts": "^1.1.6",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.3",
+    "hardhat": "^2.22.12",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "hardhat-gas-reporter": "^2.2.1"
+  }
+}

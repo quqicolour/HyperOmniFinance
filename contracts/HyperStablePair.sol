@@ -18,6 +18,7 @@ contract HyperStablePair is IHyperStablePair, HyperStableERC20 {
         bytes4(keccak256(bytes("transfer(address,uint256)")));
 
     address public factory;
+    address public crossRouter;
     address public token0;
     address public token1;
 
@@ -30,6 +31,11 @@ contract HyperStablePair is IHyperStablePair, HyperStableERC20 {
     uint public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
 
     uint private unlocked = 1;
+
+    constructor() {
+        factory = msg.sender;
+    }
+
     modifier lock() {
         require(unlocked == 1, "HyperStableV1: locked");
         unlocked = 0;
@@ -37,12 +43,10 @@ contract HyperStablePair is IHyperStablePair, HyperStableERC20 {
         unlocked = 1;
     }
 
-    function getTokenBalance(
-        address _token,
-        address _account
-    ) private view returns (uint _amount) {
-        _amount = IERC20(_token).balanceOf(_account);
-    }
+    function approveRouter(address _token,uint256 _amount)external {
+        require(msg.sender == crossRouter,"Non cross router");
+        IERC20(_token).approve(crossRouter, _amount);
+    }    
 
     function getReserves()
         public
@@ -68,15 +72,12 @@ contract HyperStablePair is IHyperStablePair, HyperStableERC20 {
         );
     }
 
-    constructor() {
-        factory = msg.sender;
-    }
-
     // called once by the factory at time of deployment
-    function initialize(address _token0, address _token1) external {
+    function initialize(address _token0, address _token1, address _crossRouter) external {
         require(msg.sender == factory, "HyperStableV1: Non hyperStableFactory"); // sufficient check
         token0 = _token0;
         token1 = _token1;
+        crossRouter = _crossRouter;
     }
 
     // update reserves and, on the first call per block, price accumulators
@@ -277,5 +278,12 @@ contract HyperStablePair is IHyperStablePair, HyperStableERC20 {
             reserve0,
             reserve1
         );
+    }
+
+    function getTokenBalance(
+        address _token,
+        address _account
+    ) private view returns (uint _amount) {
+        _amount = IERC20(_token).balanceOf(_account);
     }
 }

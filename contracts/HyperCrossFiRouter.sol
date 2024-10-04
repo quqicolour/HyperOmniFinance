@@ -34,6 +34,9 @@ contract HyperCrossFiRouter is
 
     mapping(uint256 => address) private whiteList;
 
+    mapping(uint256 => mapping(address => uint256))
+        private srcTokenMirrorDestToken;
+
     receive() external payable {
         emit ReceiveETH(msg.sender, msg.value);
     }
@@ -41,13 +44,6 @@ contract HyperCrossFiRouter is
     modifier ensure(uint deadline) {
         require(deadline >= block.timestamp, "HyperCrossFiRouter: EXPIRED");
         _;
-    }
-
-    function setWhitelist(
-        uint256 _srcChainId,
-        address _srcContract
-    ) external onlyOwner {
-        _setWhitelist(_srcChainId, _srcContract);
     }
 
     function batchSetWhitelist(
@@ -60,15 +56,30 @@ contract HyperCrossFiRouter is
         }
     }
 
+    function batchSetTokens(
+        uint256[] calldata _destChainIds,
+        address[] calldata _srcTokens,
+        address[] calldata _destTokens
+    ) external onlyOwner {
+        require(_srcTokens.length == _destTokens.length);
+        for (uint256 i; i < _srcTokens.length; i++) {
+            _setSrcTokenMirrorDestToken(
+                _destChainIds[i],
+                _srcTokens[i],
+                _destTokens[i]
+            );
+        }
+    }
+
     function sendCrossMessage(
         SendCrossParams calldata params
     ) external payable nonReentrant {
         require(params.srcSlipSpot < 10000 && params.destSlipSpot < 10000);
         uint256 outputAmount;
         address[] memory path = new address[](2);
-        path[0] = params.fromToken;
-        path[1] = params.toToken;
-        address pair = getThisPair(params.fromToken, params.toToken);
+        path[0] = params.srcFromToken;
+        path[1] = params.srcToToken;
+        address pair = getThisPair(params.srcFromToken, params.srcToToken);
         uint256 sendCrossETHAmount;
 
         if (params.way == 0) {
@@ -81,23 +92,59 @@ contract HyperCrossFiRouter is
                 block.timestamp + 30
             )[1];
         } else if (params.way == 1) {
-            outputAmount = swapExactETHForTokens(
+            // outputAmount = swapExactETHForTokens(
+            //     params.amount,
+            //     (getAmountsOut(params.amount, path)[1] * params.srcSlipSpot) /
+            //         10000,
+            //     path,
+            //     pair,
+            //     block.timestamp + 30
+            // )[1];
+
+            require(path[0] == WETH, "HyperStableRouter: INVALID_PATH");
+            uint256[] memory amounts = HyperStableLibrary.getAmountsOut(
+                factory,
                 params.amount,
-                (getAmountsOut(params.amount, path)[1] * params.srcSlipSpot) /
-                    10000,
                 path,
-                pair,
-                block.timestamp + 30
-            )[1];
+                getCodeHash()
+            );
+            outputAmount = amounts[1];
+            require(
+                amounts[amounts.length - 1] >=
+                    (amounts[amounts.length - 1] * params.srcSlipSpot) / 10000
+            );
+            IWETH(WETH).deposit{value: amounts[0]}();
+            require(
+                IWETH(WETH).transfer(getThisPair(path[0], path[1]), amounts[0])
+            );
+            _swap(amounts, path, pair);
         } else if (params.way == 2) {
-            outputAmount = swapExactTokensForETH(
+            // outputAmount = swapExactTokensForETH(
+            //     params.amount,
+            //     (getAmountsOut(params.amount, path)[1] * params.srcSlipSpot) /
+            //         10000,
+            //     path,
+            //     address(this),
+            //     block.timestamp + 30
+            // )[1];
+            require(path[1] == WETH, "HyperStableRouter: INVALID_PATH");
+            uint256[] memory amounts = HyperStableLibrary.getAmountsOut(
+                factory,
                 params.amount,
-                (getAmountsOut(params.amount, path)[1] * params.srcSlipSpot) /
-                    10000,
                 path,
-                address(this),
-                block.timestamp + 30
-            )[1];
+                getCodeHash()
+            );
+            outputAmount = amounts[1];
+            require(amounts[1] >= (amounts[1] * params.srcSlipSpot) / 10000);
+            TransferHelper.safeTransferFrom(
+                path[0],
+                msg.sender,
+                getThisPair(path[0], path[1]),
+                amounts[0]
+            );
+            _swap(amounts, path, address(this));
+            IWETH(WETH).withdraw(amounts[1]);
+            TransferHelper.safeTransferETH(address(this), amounts[1]);
             sendCrossETHAmount = outputAmount;
         } else {
             revert("Not way");
@@ -109,9 +156,13 @@ contract HyperCrossFiRouter is
             destSlipSpot: params.srcSlipSpot,
             srcInput: params.amount,
             srcOutput: outputAmount,
-            receiver: params.receiver,
-            fromToken: params.fromToken,
-            toToken: params.toToken
+            fromToken: srcTokenMirrorDestToken[params.destChainId][
+                params.srcFromToken
+            ],
+            toToken: srcTokenMirrorDestToken[params.destChainId][
+                params.srcFromToken
+            ],
+            receiver: params.receiver
         });
 
         bytes memory _encodedMessage = _packetMessage(
@@ -130,12 +181,15 @@ contract HyperCrossFiRouter is
         );
 
         if (params.way == 1) {
-            require(msg.value >= gasFee + getAmountsIn(params.amount, path)[0]);
+            require(
+                msg.value >= gasFee + getAmountsOut(params.amount, path)[0],
+                "ETH Insufficient"
+            );
         } else {
             require(msg.value >= gasFee, "ETH Insufficient");
         }
 
-        LaunchPad.Launch{value: msg.value}(
+        LaunchPad.Launch{value: gasFee + sendCrossETHAmount}(
             uint64(block.timestamp) + 3 minutes,
             uint64(block.timestamp) + 1000 minutes,
             address(0),
@@ -151,8 +205,8 @@ contract HyperCrossFiRouter is
         SendCrossParams calldata params
     ) external view returns (uint256 _bridgeFee, uint256 _outputAmount) {
         address[] memory path = new address[](2);
-        path[0] = params.fromToken;
-        path[1] = params.toToken;
+        path[0] = params.srcFromToken;
+        path[1] = params.srcToToken;
 
         if (params.way == 0) {
             _outputAmount =
@@ -177,8 +231,12 @@ contract HyperCrossFiRouter is
             srcInput: params.amount,
             srcOutput: _outputAmount,
             receiver: params.receiver,
-            fromToken: params.fromToken,
-            toToken: params.toToken
+            fromToken: srcTokenMirrorDestToken[params.destChainId][
+                params.srcFromToken
+            ],
+            toToken: srcTokenMirrorDestToken[params.destChainId][
+                params.srcToToken
+            ]
         });
 
         bytes memory _encodedMessage = _packetMessage(
@@ -201,7 +259,7 @@ contract HyperCrossFiRouter is
         uint[] memory amounts,
         address[] memory path,
         address _to
-    ) internal {
+    ) private {
         for (uint i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0, ) = HyperStableLibrary.sortTokens(input, output);
@@ -226,7 +284,7 @@ contract HyperCrossFiRouter is
         address[] memory path,
         address to,
         uint deadline
-    ) internal ensure(deadline) returns (uint[] memory amounts) {
+    ) private ensure(deadline) returns (uint[] memory amounts) {
         amounts = HyperStableLibrary.getAmountsOut(
             factory,
             amountIn,
@@ -252,9 +310,9 @@ contract HyperCrossFiRouter is
         address[] memory path,
         address to,
         uint deadline
-    ) internal ensure(deadline) returns (uint[] memory amounts) {
+    ) private ensure(deadline) returns (uint[] memory amounts) {
         require(path[0] == WETH, "HyperStableRouter: INVALID_PATH");
-        require(msg.value > ethAmountIn, "Send eth error");
+        require(msg.value > ethAmountIn);
         amounts = HyperStableLibrary.getAmountsOut(
             factory,
             ethAmountIn,
@@ -278,21 +336,15 @@ contract HyperCrossFiRouter is
         address[] memory path,
         address to,
         uint deadline
-    ) internal ensure(deadline) returns (uint[] memory amounts) {
-        require(
-            path[path.length - 1] == WETH,
-            "HyperStableRouter: INVALID_PATH"
-        );
+    ) private ensure(deadline) returns (uint[] memory amounts) {
+        require(path[path.length - 1] == WETH);
         amounts = HyperStableLibrary.getAmountsOut(
             factory,
             amountIn,
             path,
             getCodeHash()
         );
-        require(
-            amounts[amounts.length - 1] >= amountOutMin,
-            "HyperStableRouter: INSUFFICIENT_OUTPUT_AMOUNT"
-        );
+        require(amounts[amounts.length - 1] >= amountOutMin);
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
@@ -316,14 +368,15 @@ contract HyperCrossFiRouter is
         }
 
         CrossMessage memory _crossMessage = abi.decode(message, (CrossMessage));
-        address pair = getThisPair(
-            _crossMessage.fromToken,
-            _crossMessage.toToken
-        );
+
+        address _fromToken = address(uint160(_crossMessage.fromToken));
+        address _toToken = address(uint160(_crossMessage.toToken));
+
+        address pair = getThisPair(_fromToken, _toToken);
 
         address[] memory path = new address[](2);
-        path[0] = _crossMessage.fromToken;
-        path[1] = _crossMessage.toToken;
+        path[0] = _fromToken;
+        path[1] = _toToken;
 
         if (_crossMessage.way == 0 || _crossMessage.way == 1) {
             uint256 realOutputAmount = getAmountsOut(
@@ -332,15 +385,20 @@ contract HyperCrossFiRouter is
             )[1] >= _crossMessage.srcOutput
                 ? _crossMessage.srcOutput
                 : getAmountsOut(_crossMessage.srcInput, path)[1];
-
+            //pair approve cross router
+            IHyperStablePair(pair).approveRouter(_toToken, realOutputAmount);
             TransferHelper.safeTransferFrom(
-                _crossMessage.toToken,
+                _toToken,
                 pair,
+                address(this),
+                realOutputAmount
+            );
+            TransferHelper.safeTransfer(
+                _toToken,
                 _crossMessage.receiver,
                 realOutputAmount
             );
         } else if (_crossMessage.way == 2) {
-            require(msg.value >= _crossMessage.srcOutput, "Send eth error");
             //send eth to receiver
             (bool success, ) = _crossMessage.receiver.call{
                 value: _crossMessage.srcOutput
@@ -354,7 +412,7 @@ contract HyperCrossFiRouter is
     function getAmountsOut(
         uint amountIn,
         address[] memory path
-    ) internal view returns (uint[] memory amounts) {
+    ) private view returns (uint[] memory amounts) {
         return
             HyperStableLibrary.getAmountsOut(
                 factory,
@@ -367,7 +425,7 @@ contract HyperCrossFiRouter is
     function getAmountsIn(
         uint amountOut,
         address[] memory path
-    ) internal view returns (uint[] memory amounts) {
+    ) private view returns (uint[] memory amounts) {
         return
             HyperStableLibrary.getAmountsIn(
                 factory,
@@ -386,6 +444,16 @@ contract HyperCrossFiRouter is
 
     function _setWhitelist(uint256 _srcChainId, address _srcContract) private {
         whiteList[_srcChainId] = _srcContract;
+    }
+
+    function _setSrcTokenMirrorDestToken(
+        uint256 _destChainId,
+        address _srctoken,
+        address _destToken
+    ) private {
+        srcTokenMirrorDestToken[_destChainId][_srctoken] = uint256(
+            uint160(_destToken)
+        );
     }
 
     function getCodeHash() private view returns (bytes32 initCodeHash) {

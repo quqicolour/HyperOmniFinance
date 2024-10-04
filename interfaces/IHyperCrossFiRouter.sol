@@ -14,11 +14,10 @@ interface IHyperCrossFiRouter {
         uint64 gasPrice;
         uint64 destChainId;
         uint256 amount;
-        address fromToken;
-        address toToken;
+        address srcFromToken;
+        address srcToToken;
         address receiver;
         address destContract;
-
     }
 
     struct CrossMessage{
@@ -27,8 +26,8 @@ interface IHyperCrossFiRouter {
         uint16 destSlipSpot;
         uint256 srcInput;
         uint256 srcOutput;
+        uint256 fromToken;
+        uint256 toToken;
         address receiver;
-        address fromToken;
-        address toToken;
     }
 }

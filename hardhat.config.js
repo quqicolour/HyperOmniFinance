@@ -1,10 +1,18 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("hardhat-gas-reporter");
 require('dotenv').config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
- network: { 
-  
+  networks: { 
+    arb_sepolia: {
+      url: process.env.Arbitrum_Api_Key,
+      accounts: [process.env.PRIVATE_KEY]
+    },
+    op_sepolia: {
+      url: process.env.Op_Api_key,
+      accounts: [process.env.PRIVATE_KEY]
+    }
   },
   solidity: {
     compilers:[

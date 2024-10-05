@@ -29,7 +29,11 @@ interface IHyperStablePair is IHyperStableERC20{
     function skim(address to) external;
     function sync() external;
 
-    function initialize(address _token0, address _token1, address _crossRouter) external;
+    function initialize(
+        address _token0,
+        address _token1,
+        address _crossRouter
+    ) external;
 
-    function approveRouter(address _token,uint256 _amount) external;
+    function approveRouter(address _token, uint256 _amount) external;
 }

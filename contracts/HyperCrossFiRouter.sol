@@ -160,7 +160,7 @@ contract HyperCrossFiRouter is
                 params.srcFromToken
             ],
             toToken: srcTokenMirrorDestToken[params.destChainId][
-                params.srcFromToken
+                params.srcToToken
             ],
             receiver: params.receiver
         });
@@ -363,9 +363,7 @@ contract HyperCrossFiRouter is
         bytes calldata message
     ) internal virtual override {
         // check if source Contract in white list
-        if (whiteList[srcChainId] != address(uint160(srcContract))) {
-            revert InvalidData();
-        }
+        require(whiteList[srcChainId] == address(uint160(srcContract)),"Non whitelist");
 
         CrossMessage memory _crossMessage = abi.decode(message, (CrossMessage));
 
@@ -387,18 +385,17 @@ contract HyperCrossFiRouter is
                 : getAmountsOut(_crossMessage.srcInput, path)[1];
             //pair approve cross router
             IHyperStablePair(pair).approveRouter(_toToken, realOutputAmount);
-            TransferHelper.safeTransferFrom(
-                _toToken,
+            IERC20(_toToken).transferFrom(
                 pair,
                 address(this),
                 realOutputAmount
             );
-            TransferHelper.safeTransfer(
-                _toToken,
+            IERC20(_toToken).transfer(
                 _crossMessage.receiver,
                 realOutputAmount
             );
         } else if (_crossMessage.way == 2) {
+            require(msg.value == _crossMessage.srcOutput,"Receive eth fail");
             //send eth to receiver
             (bool success, ) = _crossMessage.receiver.call{
                 value: _crossMessage.srcOutput

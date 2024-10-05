@@ -2,7 +2,6 @@
 pragma solidity ^0.8.23;
 
 interface IHyperCrossFiRouter {
-    error InvalidData();
 
     event ReceiveETH(address indexed _user, uint256 indexed _amount);
 

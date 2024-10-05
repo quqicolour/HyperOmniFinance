@@ -7,7 +7,7 @@ import './HyperStablePair.sol';
 contract HyperStableFactory is IHyperStableFactory {
     address public feeTo;
     address public feeToSetter;
-    address private crossRouter;
+    address private hyperCrossRouter;
     bytes1 private initState;
 
     mapping(address => mapping(address => address)) private _getPair;
@@ -17,10 +17,10 @@ contract HyperStableFactory is IHyperStableFactory {
         feeToSetter = _feeToSetter;
     }
 
-    function initCrossRouter(address _crossRouter)external {
+    function initCrossRouter(address _hyperCrossRouter)external {
         bytes1 state = 0x05;
         require(initState != state,"Already initialize");
-        crossRouter = _crossRouter;
+        hyperCrossRouter = _hyperCrossRouter;
         initState = state;
     }
 
@@ -38,7 +38,7 @@ contract HyperStableFactory is IHyperStableFactory {
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
-        IHyperStablePair(pair).initialize(token0, token1, crossRouter);
+        IHyperStablePair(pair).initialize(token0, token1, hyperCrossRouter);
         _getPair[token0][token1] = pair;
         _getPair[token1][token0] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);

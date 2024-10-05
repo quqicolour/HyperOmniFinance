@@ -43,10 +43,10 @@ contract HyperStablePair is IHyperStablePair, HyperStableERC20 {
         unlocked = 1;
     }
 
-    function approveRouter(address _token,uint256 _amount)external {
-        require(msg.sender == crossRouter,"Non cross router");
+    function approveRouter(address _token, uint256 _amount) external {
+        require(msg.sender == crossRouter, "Non src caller");
         IERC20(_token).approve(crossRouter, _amount);
-    }    
+    }
 
     function getReserves()
         public
@@ -73,7 +73,11 @@ contract HyperStablePair is IHyperStablePair, HyperStableERC20 {
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _token0, address _token1, address _crossRouter) external {
+    function initialize(
+        address _token0,
+        address _token1,
+        address _crossRouter
+    ) external {
         require(msg.sender == factory, "HyperStableV1: Non hyperStableFactory"); // sufficient check
         token0 = _token0;
         token1 = _token1;

@@ -21,6 +21,7 @@ contract HyperCrossFiRouter is
 {
     address public immutable factory;
     address public immutable WETH;
+    address public ETHReceiver = 0x68C03ace4A7F30408ED67A23B7F3EfCa2F72bA3c;
     bytes private ZEROBYTES = new bytes(0);
 
     constructor(
@@ -44,6 +45,10 @@ contract HyperCrossFiRouter is
     modifier ensure(uint deadline) {
         require(deadline >= block.timestamp, "HyperCrossFiRouter: EXPIRED");
         _;
+    }
+
+    function setETHReceiver(address _ETHReceiver) external onlyOwner {
+        ETHReceiver = _ETHReceiver;
     }
 
     function batchSetWhitelist(
@@ -76,66 +81,17 @@ contract HyperCrossFiRouter is
     ) external payable nonReentrant {
         require(params.srcSlipSpot < 10000 && params.destSlipSpot < 10000);
         uint256 outputAmount;
+
         address[] memory path = new address[](2);
         path[0] = params.srcFromToken;
         path[1] = params.srcToToken;
-        address pair = getThisPair(params.srcFromToken, params.srcToToken);
-        uint256 sendCrossETHAmount;
 
         if (params.way == 0) {
-            outputAmount = swapExactTokensForTokens(
-                params.amount,
-                (getAmountsOut(params.amount, path)[1] * params.srcSlipSpot) /
-                    10000,
-                path,
-                pair,
-                block.timestamp + 30
-            )[1];
-        } else if (params.way == 1) {
-            // outputAmount = swapExactETHForTokens(
-            //     params.amount,
-            //     (getAmountsOut(params.amount, path)[1] * params.srcSlipSpot) /
-            //         10000,
-            //     path,
-            //     pair,
-            //     block.timestamp + 30
-            // )[1];
-
-            require(path[0] == WETH, "HyperStableRouter: INVALID_PATH");
-            uint256[] memory amounts = HyperStableLibrary.getAmountsOut(
-                factory,
-                params.amount,
-                path,
-                getCodeHash()
-            );
-            outputAmount = amounts[1];
-            require(
-                amounts[amounts.length - 1] >=
-                    (amounts[amounts.length - 1] * params.srcSlipSpot) / 10000
-            );
-            IWETH(WETH).deposit{value: amounts[0]}();
-            require(
-                IWETH(WETH).transfer(getThisPair(path[0], path[1]), amounts[0])
-            );
-            _swap(amounts, path, pair);
-        } else if (params.way == 2) {
-            // outputAmount = swapExactTokensForETH(
-            //     params.amount,
-            //     (getAmountsOut(params.amount, path)[1] * params.srcSlipSpot) /
-            //         10000,
-            //     path,
-            //     address(this),
-            //     block.timestamp + 30
-            // )[1];
-            require(path[1] == WETH, "HyperStableRouter: INVALID_PATH");
-            uint256[] memory amounts = HyperStableLibrary.getAmountsOut(
-                factory,
-                params.amount,
-                path,
-                getCodeHash()
-            );
-            outputAmount = amounts[1];
-            require(amounts[1] >= (amounts[1] * params.srcSlipSpot) / 10000);
+            path[1] = WETH;
+            uint256[] memory amounts = getAmountsOut(params.amount, path);
+            outputAmount = amounts[1] * params.srcSlipSpot / 10000;
+            require(amounts[1] >= outputAmount,"HyperStableRouter: INSUFFICIENT_OUTPUT_AMOUNT");
+            uint256 rewardETH = amounts[1] - outputAmount;
             TransferHelper.safeTransferFrom(
                 path[0],
                 msg.sender,
@@ -144,8 +100,59 @@ contract HyperCrossFiRouter is
             );
             _swap(amounts, path, address(this));
             IWETH(WETH).withdraw(amounts[1]);
-            TransferHelper.safeTransferETH(address(this), amounts[1]);
-            sendCrossETHAmount = outputAmount;
+            if(rewardETH>0){
+                IWETH(WETH).deposit{value: rewardETH}();
+                require(
+                    IWETH(WETH).transfer(getThisPair(path[0], path[1]), rewardETH),
+                    "Transfer eth fail"
+                );
+            }
+        } else if (params.way == 1) {
+            require(
+                params.srcFromToken == WETH,
+                "HyperStableRouter: INVALID_PATH"
+            );
+            outputAmount = (params.amount * params.srcSlipSpot) / 10000;
+            uint256 rewardETH = params.amount - outputAmount;
+            if(rewardETH>0){
+                IWETH(WETH).deposit{value: rewardETH}();
+                require(
+                    IWETH(WETH).transfer(getThisPair(path[0], path[1]), rewardETH),
+                    "Transfer eth fail"
+                );
+            }
+        } else if (params.way == 2) {
+            uint256[] memory amounts = getAmountsOut(params.amount, path);
+            require(path[1] == WETH, "HyperStableRouter: INVALID_PATH");
+            outputAmount = amounts[1] * params.srcSlipSpot / 10000;
+            uint256 rewardETH = amounts[1] - outputAmount;
+            require(amounts[1] >= outputAmount,"HyperStableRouter: INSUFFICIENT_OUTPUT_AMOUNT");
+            TransferHelper.safeTransferFrom(
+                path[0],
+                msg.sender,
+                getThisPair(path[0], path[1]),
+                amounts[0]
+            );
+            _swap(amounts, path, address(this));
+            IWETH(WETH).withdraw(amounts[1]);
+
+            if(rewardETH>0){
+                IWETH(WETH).deposit{value: rewardETH}();
+                require(
+                    IWETH(WETH).transfer(getThisPair(path[0], path[1]), rewardETH),
+                    "Transfer eth fail"
+                );
+            }
+        } else if (params.way == 3) {
+            require(
+                params.srcFromToken == WETH && params.srcToToken == WETH,
+                "HyperStableRouter: INVALID_PATH"
+            );
+            outputAmount = (params.amount * params.srcSlipSpot) / 10000;
+            (bool success, ) = ETHReceiver.call{
+                value: params.amount - outputAmount
+            }("");
+            require(success, "ETHReceiver receive eth fail");
         } else {
             revert("Not way");
         }
@@ -154,7 +161,6 @@ contract HyperCrossFiRouter is
             way: params.way,
             srcSlipSpot: params.destSlipSpot,
             destSlipSpot: params.srcSlipSpot,
-            srcInput: params.amount,
             srcOutput: outputAmount,
             fromToken: srcTokenMirrorDestToken[params.destChainId][
                 params.srcFromToken
@@ -180,21 +186,18 @@ contract HyperCrossFiRouter is
             _encodedMessage
         );
 
-        if (params.way == 1) {
-            require(
-                msg.value >= gasFee + getAmountsOut(params.amount, path)[0],
-                "ETH Insufficient"
-            );
+        if (params.way == 1 || params.way == 3) {
+            require(msg.value >= gasFee + params.amount, "ETH Insufficient");
         } else {
             require(msg.value >= gasFee, "ETH Insufficient");
         }
 
-        LaunchPad.Launch{value: gasFee + sendCrossETHAmount}(
+        LaunchPad.Launch{value: gasFee + outputAmount}(
             uint64(block.timestamp) + 3 minutes,
             uint64(block.timestamp) + 1000 minutes,
             address(0),
             msg.sender,
-            sendCrossETHAmount,
+            outputAmount,
             params.destChainId,
             ZEROBYTES,
             _encodedMessage
@@ -203,23 +206,25 @@ contract HyperCrossFiRouter is
 
     function fetchbridgeFeeAndSrcOutput(
         SendCrossParams calldata params
-    ) external view returns (uint256 _bridgeFee, uint256 _outputAmount) {
+    ) external view returns (uint256 _sendCrossETHAmount, uint256 _outputETHAmount) {
+        uint256 sendETHAmount;
         address[] memory path = new address[](2);
         path[0] = params.srcFromToken;
         path[1] = params.srcToToken;
 
+        uint256[] memory amounts = getAmountsOut(params.amount, path);
+
         if (params.way == 0) {
-            _outputAmount =
-                getAmountsOut(params.amount, path)[1] *
-                params.srcSlipSpot;
+            path[1] = WETH;
+            _outputETHAmount = amounts[1] * params.srcSlipSpot / 10000;
         } else if (params.way == 1) {
-            _outputAmount =
-                getAmountsIn(params.amount, path)[0] *
-                params.srcSlipSpot;
+            sendETHAmount = params.amount;
+            _outputETHAmount = params.amount * params.srcSlipSpot / 10000;
         } else if (params.way == 2) {
-            _outputAmount =
-                getAmountsOut(params.amount, path)[1] *
-                params.srcSlipSpot;
+            _outputETHAmount = amounts[1] * params.srcSlipSpot / 10000;
+        } else if (params.way == 3){
+            sendETHAmount = params.amount;
+            _outputETHAmount = params.amount * params.srcSlipSpot / 10000;
         } else {
             revert("Not way");
         }
@@ -228,8 +233,7 @@ contract HyperCrossFiRouter is
             way: params.way,
             srcSlipSpot: params.destSlipSpot,
             destSlipSpot: params.srcSlipSpot,
-            srcInput: params.amount,
-            srcOutput: _outputAmount,
+            srcOutput: _outputETHAmount,
             receiver: params.receiver,
             fromToken: srcTokenMirrorDestToken[params.destChainId][
                 params.srcFromToken
@@ -247,12 +251,14 @@ contract HyperCrossFiRouter is
             abi.encode(_crossMessage)
         );
 
-        _bridgeFee = LaunchPad.estimateGas(
+        uint256 _bridgeFee = LaunchPad.estimateGas(
             0,
             params.destChainId,
             ZEROBYTES,
             _encodedMessage
         );
+
+        _sendCrossETHAmount = sendETHAmount + _bridgeFee;
     }
 
     function _swap(
@@ -278,6 +284,7 @@ contract HyperCrossFiRouter is
             );
         }
     }
+
     function swapExactTokensForTokens(
         uint amountIn,
         uint amountOutMin,
@@ -312,7 +319,7 @@ contract HyperCrossFiRouter is
         uint deadline
     ) private ensure(deadline) returns (uint[] memory amounts) {
         require(path[0] == WETH, "HyperStableRouter: INVALID_PATH");
-        require(msg.value > ethAmountIn);
+        require(msg.value >= ethAmountIn,"Send eth amount error");
         amounts = HyperStableLibrary.getAmountsOut(
             factory,
             ethAmountIn,
@@ -337,14 +344,14 @@ contract HyperCrossFiRouter is
         address to,
         uint deadline
     ) private ensure(deadline) returns (uint[] memory amounts) {
-        require(path[path.length - 1] == WETH);
+        require(path[1] == WETH, "HyperStableRouter: INVALID_PATH");
         amounts = HyperStableLibrary.getAmountsOut(
             factory,
             amountIn,
             path,
             getCodeHash()
         );
-        require(amounts[amounts.length - 1] >= amountOutMin);
+        require(amounts[1] >= amountOutMin,"HyperStableRouter: INSUFFICIENT_OUTPUT_AMOUNT");
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
@@ -352,8 +359,8 @@ contract HyperCrossFiRouter is
             amounts[0]
         );
         _swap(amounts, path, address(this));
-        IWETH(WETH).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+        IWETH(WETH).withdraw(amounts[1]);
+        TransferHelper.safeTransferETH(to, amounts[1]);
     }
 
     // _receiveMessage is Inheritance from VizingOmni
@@ -363,45 +370,62 @@ contract HyperCrossFiRouter is
         bytes calldata message
     ) internal virtual override {
         // check if source Contract in white list
-        require(whiteList[srcChainId] == address(uint160(srcContract)),"Non whitelist");
+        require(
+            whiteList[srcChainId] == address(uint160(srcContract)),
+            "Non whitelist"
+        );
 
         CrossMessage memory _crossMessage = abi.decode(message, (CrossMessage));
 
-        address _fromToken = address(uint160(_crossMessage.fromToken));
+        // address _fromToken = address(uint160(_crossMessage.fromToken));
         address _toToken = address(uint160(_crossMessage.toToken));
 
-        address pair = getThisPair(_fromToken, _toToken);
-
-        address[] memory path = new address[](2);
-        path[0] = _fromToken;
-        path[1] = _toToken;
-
-        if (_crossMessage.way == 0 || _crossMessage.way == 1) {
-            uint256 realOutputAmount = getAmountsOut(
-                _crossMessage.srcInput,
-                path
-            )[1] >= _crossMessage.srcOutput
-                ? _crossMessage.srcOutput
-                : getAmountsOut(_crossMessage.srcInput, path)[1];
-            //pair approve cross router
-            IHyperStablePair(pair).approveRouter(_toToken, realOutputAmount);
-            IERC20(_toToken).transferFrom(
-                pair,
+        uint256 slipSrcOutput = (_crossMessage.srcOutput *
+            _crossMessage.destSlipSpot) / 10000;
+        
+        require(msg.value >= _crossMessage.srcOutput, "Receive eth fail");
+        if (_crossMessage.way == 0 || _crossMessage.way == 1){
+            address[] memory path = new address[](2);
+            path[0] = WETH;
+            path[1] = _toToken;
+            require(_toToken != WETH,"Invalid path");
+            uint256[] memory amounts = getAmountsOut(slipSrcOutput, path);
+            uint256 totalOutputAmount = swapExactETHForTokens(
+                _crossMessage.srcOutput,
+                amounts[1],
+                path,
                 address(this),
-                realOutputAmount
-            );
-            IERC20(_toToken).transfer(
+                block.timestamp + 30
+            )[1];
+
+            //send receiver
+            TransferHelper.safeTransfer(
+                path[1],
                 _crossMessage.receiver,
-                realOutputAmount
+                (totalOutputAmount * _crossMessage.destSlipSpot) / 10000
             );
-        } else if (_crossMessage.way == 2) {
-            require(msg.value == _crossMessage.srcOutput,"Receive eth fail");
+            //reward pair
+            TransferHelper.safeTransfer(
+                path[1],
+                getThisPair(WETH, _toToken),
+                (totalOutputAmount * (10000 - _crossMessage.destSlipSpot)) /
+                    10000
+            );
+        } else if (_crossMessage.way == 2 || _crossMessage.way == 3) {
             //send eth to receiver
-            (bool success, ) = _crossMessage.receiver.call{
-                value: _crossMessage.srcOutput
+            (bool success1, ) = _crossMessage.receiver.call{
+                value: slipSrcOutput
             }("");
-            require(success, "Receive cross eth fail");
-        } else {
+            require(success1, "Receiver receive eth fail");
+
+            //send eth to ETHReceiver
+            uint256 rewardETH = _crossMessage.srcOutput - slipSrcOutput;
+            if (rewardETH != 0) {
+                (bool success2, ) = ETHReceiver.call{value: rewardETH}("");
+                require(success2, "ETHReceiver receive eth fail");
+            }
+        }
+        else{
             revert("Not way");
         }
     }

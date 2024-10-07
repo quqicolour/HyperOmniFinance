@@ -10,9 +10,9 @@ const HyperStableFactoryABI=require("../artifacts/contracts/HyperStableFactory.s
   WETH Address: 0x36163d480435975C62cA32b01b367403DE755DEB
   USDC Address: 0xa83b368365F47BB6c1458dBe64FffC8C9a8b4d89
   USDT Address: 0xB7649fC7Ed7f4D2f96EaEd2864712991e637B5CD
-  HyperStableFactory Address: 0xEd41774cd861C8eb47D13E7e210bb150c3c1aD8a
-  HyperStableRouter Address: 0xf14b60b9CD4D3C5440796dB3a4C1506d6D8f87b4
-  HyperCrossFiRouter address: 0xBdb68c1a3143b7A2b9E8487cBc84496DF063161C
+  HyperStableFactory Address: 0x05B3E3bD5e059D4f0fdaf74A46cA33886725a90c
+HyperStableRouter Address: 0x693caC4c619A56D6d3ebD7A275D4c55A7602d6B0
+ HyperCrossFiRouter address: 0x6A83B4F84716302Ee3b6b8Dd20Dac536Bbb9f931
  * 
  */
 async function main() {
@@ -52,16 +52,16 @@ async function main() {
     // const HyperStableRouter = await hyperStableRouter02.deploy(HyperStableFactoryAddress, WETHAddress);
     // const HyperStableRouterAddress = await HyperStableRouter.target;
     // console.log("HyperStableRouter Address:",HyperStableRouterAddress);
-    
-    const HyperStableFactoryAddress="0xEd41774cd861C8eb47D13E7e210bb150c3c1aD8a";
-    const HyperStableRouterAddress="0xf14b60b9CD4D3C5440796dB3a4C1506d6D8f87b4";
-    const HyperCrossFiRouterAddress="0xBdb68c1a3143b7A2b9E8487cBc84496DF063161C";
 
+    const HyperStableFactoryAddress="0x05B3E3bD5e059D4f0fdaf74A46cA33886725a90c";
+    const HyperStableRouterAddress="0x693caC4c619A56D6d3ebD7A275D4c55A7602d6B0";
+    const HyperCrossFiRouterAddress="0x6A83B4F84716302Ee3b6b8Dd20Dac536Bbb9f931";
+   
     const HyperStableRouter=new ethers.Contract(HyperStableRouterAddress,HyperStableRouter02ABI.abi,owner);
     const HyperStableFactory=new ethers.Contract(HyperStableFactoryAddress,HyperStableFactoryABI.abi,owner);
     const HyperCrossFiRouter=new ethers.Contract(HyperCrossFiRouterAddress,HyperCrossFiRouterABI.abi,owner);
 
-    const destHyperCrossFiRouterAddress="0x807e0DC5419F4697Aa88B78A11f034c7d5Da8BD7";
+    const destHyperCrossFiRouterAddress="0x47B2a77fFb95282C67A2F746d0C2330213ce26AD";
     const arbVizingPad="0x0B5a8E5494DDE7039781af500A49E7971AE07a6b";
     const opChainId=11155420;
     // const hyperCrossFiRouter = await ethers.getContractFactory("HyperCrossFiRouter");
@@ -69,12 +69,7 @@ async function main() {
     // const HyperCrossFiRouterAddress =await HyperCrossFiRouter.target;
     // console.log("HyperCrossFiRouter address:",HyperCrossFiRouterAddress);
 
-    //init cross
-    // const initCrossRouter=await HyperStableFactory.initCrossRouter(HyperCrossFiRouterAddress);
-    // await initCrossRouter.wait();
-    // console.log("Successful initialization");
-
-    // //approve
+    // approve
     // const approveAmount=ethers.parseEther("10000000");
     // await USDC.approve(HyperStableRouterAddress, approveAmount);
     // await USDT.approve(HyperStableRouterAddress, approveAmount);
@@ -88,7 +83,7 @@ async function main() {
     //   tokenA: USDCAddress,
     //   tokenB: USDTAddress,
     //   amountADesired: ethers.parseEther("100000"),
-    //   amountBDesired: ethers.parseEther("99990"),
+    //   amountBDesired: ethers.parseEther("9999000"),
     //   amountAMin: 0,
     //   amountBMin: 0,
     //   to: owner.address,
@@ -139,8 +134,8 @@ async function main() {
     console.log("Remove liquidity success🌈🌈🌈");
 
     */
+    // add weth-usdc 
 
-    //add weth-usdc 
     // const wethApprove=await WETH.approve(HyperStableRouterAddress, approveAmount);
     // await wethApprove.wait()
     // console.log("Weth approve success");
@@ -148,7 +143,7 @@ async function main() {
     // const liquidityParams2={
     //   tokenA: USDCAddress,
     //   tokenB: WETHAddress,
-    //   amountADesired: ethers.parseEther("0.2365"),
+    //   amountADesired: ethers.parseEther("0.0002365"),
     //   amountBDesired: ethers.parseEther("0.0001"),
     //   amountAMin: 0,
     //   amountBMin: 0,
@@ -171,39 +166,70 @@ async function main() {
     // );
     // console.log("Add weth-usdc liquidity success 🎉🎉🎉");
 
+    //add weth-usdt
+    // const wethApprove=await WETH.approve(HyperStableRouterAddress, approveAmount);
+    // await wethApprove.wait()
+    // console.log("Weth approve success");
+
+    // const liquidityParams3={
+    //   tokenA: USDTAddress,
+    //   tokenB: WETHAddress,
+    //   amountADesired: ethers.parseEther("0.02365"),
+    //   amountBDesired: ethers.parseEther("0.0001"),
+    //   amountAMin: 0,
+    //   amountBMin: 0,
+    //   to: owner.address,
+    //   deadline: currentTimestamp
+    // };
+    // const depositETH2=await WETH.deposit({value: liquidityParams3.amountBDesired});
+    // await depositETH2.wait();
+    // console.log("Deposite2 eth success");
+
+    // await HyperStableRouter.addLiquidity(
+    //   liquidityParams3.tokenA,
+    //   liquidityParams3.tokenB,
+    //   liquidityParams3.amountADesired,
+    //   liquidityParams3.amountBDesired,
+    //   liquidityParams3.amountAMin,
+    //   liquidityParams3.amountBMin,
+    //   liquidityParams3.to,
+    //   liquidityParams3.deadline
+    // );
+    // console.log("Add weth-usdc liquidity success 🎉🎉🎉");
+
     //setWhitelist
-    const destChainIds=[opChainId];
-    const destChainContracts=[destHyperCrossFiRouterAddress];
-    const batchSetWhitelist=await HyperCrossFiRouter.batchSetWhitelist(destChainIds, destChainContracts);
-    await batchSetWhitelist.wait();
-    console.log("batchSetWhitelist success");
+    // const destChainIds=[opChainId];
+    // const destChainContracts=[destHyperCrossFiRouterAddress];
+    // const batchSetWhitelist=await HyperCrossFiRouter.batchSetWhitelist(destChainIds, destChainContracts);
+    // await batchSetWhitelist.wait();
+    // console.log("batchSetWhitelist success");
 
-    // setSrcTokenMirrorDestToken
-    const srcUSDC="0xa83b368365F47BB6c1458dBe64FffC8C9a8b4d89";
-    const srcUSDT="0xB7649fC7Ed7f4D2f96EaEd2864712991e637B5CD";
-    const srcWETH="0x36163d480435975C62cA32b01b367403DE755DEB";
-    const destUSDC="0x7C4b5B71363Def9178453553C9D7A8789cD60908";
-    const destUSDT="0x0a572426cBd8e9495b9543bE87CCaBfd7a85993C";
-    const destWETH="0x4805B6E921465EE0766d359c03B9A478cb2A6bbc";
-    const chainIds=[opChainId,opChainId,opChainId];
-    const srcTokens=[srcUSDC,srcUSDT,srcWETH];
-    const destTokens=[destUSDC,destUSDT,destWETH];
+    // // setSrcTokenMirrorDestToken
+    // const srcUSDC="0xa83b368365F47BB6c1458dBe64FffC8C9a8b4d89";
+    // const srcUSDT="0xB7649fC7Ed7f4D2f96EaEd2864712991e637B5CD";
+    // const srcWETH="0x36163d480435975C62cA32b01b367403DE755DEB";
+    // const destUSDC="0x7C4b5B71363Def9178453553C9D7A8789cD60908";
+    // const destUSDT="0x0a572426cBd8e9495b9543bE87CCaBfd7a85993C";
+    // const destWETH="0x4805B6E921465EE0766d359c03B9A478cb2A6bbc";
+    // const chainIds=[opChainId,opChainId,opChainId];
+    // const srcTokens=[srcUSDC,srcUSDT,srcWETH];
+    // const destTokens=[destUSDC,destUSDT,destWETH];
 
-    const batchSetTokens=await HyperCrossFiRouter.batchSetTokens(chainIds, srcTokens,destTokens);
-    await batchSetTokens.wait();
-    console.log("batchSetTokens success");
+    // const batchSetTokens=await HyperCrossFiRouter.batchSetTokens(chainIds, srcTokens,destTokens);
+    // await batchSetTokens.wait();
+    // console.log("batchSetTokens success");
 
     
 
-    //send cross message
-    const approveAmount2=ethers.parseEther("10000000");
-    await USDC.approve(HyperCrossFiRouterAddress, approveAmount2);
-    await USDT.approve(HyperCrossFiRouterAddress, approveAmount2);
-    console.log("Approve success🥳🥳🥳");
+    // send cross message
+    // const approveAmount2=ethers.parseEther("10000000");
+    // await USDC.approve(HyperCrossFiRouterAddress, approveAmount2);
+    // await USDT.approve(HyperCrossFiRouterAddress, approveAmount2);
+    // console.log("Approve success🥳🥳🥳");
 
-    const wethApprove2=await WETH.approve(HyperCrossFiRouterAddress, approveAmount2);
-    await wethApprove2.wait()
-    console.log("Weth approve success");
+    // const wethApprove2=await WETH.approve(HyperCrossFiRouterAddress, approveAmount2);
+    // await wethApprove2.wait()
+    // console.log("Weth approve success");
 
     const SendCrossParams={
       way: 0,
@@ -212,7 +238,7 @@ async function main() {
       gasLimit: 500000,
       gasPrice: 1_500_000_000,
       destChainId: opChainId,
-      amount: 1000000000n,
+      amount: 100000000n,
       srcFromToken: USDCAddress,
       srcToToken: USDTAddress,  //
       receiver: owner.address,
@@ -220,13 +246,9 @@ async function main() {
     };
 
     const getSendAmount=await HyperCrossFiRouter.fetchbridgeFeeAndSrcOutput(SendCrossParams);
-    let totalSendETHAmount;
-    if(SendCrossParams.way==1){
-      totalSendETHAmount = getSendAmount[0] + SendCrossParams.amount;
-    }else{
-      totalSendETHAmount = getSendAmount[0];
-    }
-    console.log("getSendAmount:",totalSendETHAmount);
+    console.log("getSendAmount:",getSendAmount);
+    let totalSendETHAmount = getSendAmount[0];
+    console.log("bridge :",totalSendETHAmount);
     const sendCrossMessage=await HyperCrossFiRouter.sendCrossMessage(SendCrossParams,{value: totalSendETHAmount});
     const sendCrossMessageTx=await sendCrossMessage.wait();
     console.log("sendCrossMessageTx:",sendCrossMessageTx);

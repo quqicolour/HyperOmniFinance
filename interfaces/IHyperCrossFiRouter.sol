@@ -23,7 +23,6 @@ interface IHyperCrossFiRouter {
         uint8 way;
         uint16 srcSlipSpot;
         uint16 destSlipSpot;
-        uint256 srcInput;
         uint256 srcOutput;
         uint256 fromToken;
         uint256 toToken;

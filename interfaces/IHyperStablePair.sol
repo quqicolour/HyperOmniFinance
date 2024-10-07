@@ -31,9 +31,6 @@ interface IHyperStablePair is IHyperStableERC20{
 
     function initialize(
         address _token0,
-        address _token1,
-        address _crossRouter
+        address _token1
     ) external;
-
-    function approveRouter(address _token, uint256 _amount) external;
 }

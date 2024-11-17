@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.23;
-import './IHyperStableERC20.sol';
-interface IHyperStablePair is IHyperStableERC20{
+import './IHyperOmniERC20.sol';
+interface IHyperOmniPair is IHyperOmniERC20{
     event Mint(address indexed sender, uint amount0, uint amount1);
     event Burn(address indexed sender, uint amount0, uint amount1, address indexed to);
     event Swap(

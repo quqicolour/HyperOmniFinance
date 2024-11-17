@@ -5,12 +5,20 @@ require('dotenv').config();
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   networks: { 
+    sepolia: {
+      url: process.env.Sepolia_Api_Key,
+      accounts: [process.env.PRIVATE_KEY]
+    },
     arb_sepolia: {
       url: process.env.Arbitrum_Api_Key,
       accounts: [process.env.PRIVATE_KEY]
     },
     op_sepolia: {
       url: process.env.Op_Api_key,
+      accounts: [process.env.PRIVATE_KEY]
+    },
+    base_sepolia: {
+      url: process.env.Base_Api_Key,
       accounts: [process.env.PRIVATE_KEY]
     }
   },

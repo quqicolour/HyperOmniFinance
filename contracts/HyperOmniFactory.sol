@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.23;
 
-import "../interfaces/IHyperStableFactory.sol";
-import "./HyperStablePair.sol";
+import "../interfaces/IHyperOmniFactory.sol";
+import "./HyperOmniPair.sol";
 
-contract HyperStableFactory is IHyperStableFactory {
+contract HyperOmniFactory is IHyperOmniFactory {
     address public feeTo;
     address public feeToSetter;
 
@@ -16,28 +16,28 @@ contract HyperStableFactory is IHyperStableFactory {
     }
 
     function pairCodeHash() external view returns (bytes32) {
-        return keccak256(type(HyperStablePair).creationCode);
+        return keccak256(type(HyperOmniPair).creationCode);
     }
 
     function createPair(
         address tokenA,
         address tokenB
     ) external returns (address pair) {
-        require(tokenA != tokenB, "HyperStable: IDENTICAL_ADDRESSES");
+        require(tokenA != tokenB, "HyperOmniFactory: IDENTICAL_ADDRESSES");
         (address token0, address token1) = tokenA < tokenB
             ? (tokenA, tokenB)
             : (tokenB, tokenA);
-        require(token0 != address(0), "HyperStable: ZERO_ADDRESS");
+        require(token0 != address(0), "HyperOmniFactory: ZERO_ADDRESS");
         require(
             _getPair[token0][token1] == address(0),
-            "HyperStable: PAIR_EXISTS"
+            "HyperOmniFactory: PAIR_EXISTS"
         ); // single check is sufficient
-        bytes memory bytecode = type(HyperStablePair).creationCode;
+        bytes memory bytecode = type(HyperOmniPair).creationCode;
         bytes32 salt = keccak256(abi.encodePacked(token0, token1));
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
-        IHyperStablePair(pair).initialize(token0, token1);
+        IHyperOmniPair(pair).initialize(token0, token1);
         _getPair[token0][token1] = pair;
         _getPair[token1][token0] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);
@@ -45,12 +45,12 @@ contract HyperStableFactory is IHyperStableFactory {
     }
 
     function setFeeTo(address _feeTo) external {
-        require(msg.sender == feeToSetter, "HyperStable: FORBIDDEN");
+        require(msg.sender == feeToSetter, "HyperOmniFactory: FORBIDDEN");
         feeTo = _feeTo;
     }
 
     function setFeeToSetter(address _feeToSetter) external {
-        require(msg.sender == feeToSetter, "HyperStable: FORBIDDEN");
+        require(msg.sender == feeToSetter, "HyperOmniFactory: FORBIDDEN");
         feeToSetter = _feeToSetter;
     }
 

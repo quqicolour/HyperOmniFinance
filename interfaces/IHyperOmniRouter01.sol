@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.23;
 
-interface IHyperStableRouter01 {
+interface IHyperOmniRouter01 {
   function factory() external view returns (address);
 
   function WETH() external view returns (address);

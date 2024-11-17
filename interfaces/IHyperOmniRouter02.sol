@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.23;
 
-import './IHyperStableRouter01.sol';
+import './IHyperOmniRouter01.sol';
 
-interface IHyperStableRouter02 is IHyperStableRouter01 {
+interface IHyperOmniRouter02 is IHyperOmniRouter01 {
   function removeLiquidityETHSupportingFeeOnTransferTokens(
     address token,
     uint liquidity,

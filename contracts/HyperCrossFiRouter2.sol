@@ -13,7 +13,7 @@ import {IWETH} from "../interfaces/IWETH.sol";
 import {IHyperOmniFactory} from "../interfaces/IHyperOmniFactory.sol";
 import {IHyperOmniPair} from "../interfaces/IHyperOmniPair.sol";
 
-contract HyperCrossFiRouter is
+contract HyperCrossFiRouter2 is
     VizingOmni,
     Ownable,
     ReentrancyGuard,
@@ -365,6 +365,7 @@ contract HyperCrossFiRouter is
 
     // _receiveMessage is Inheritance from VizingOmni
     function _receiveMessage(
+        bytes32,
         uint64 srcChainId,
         uint256 srcContract,
         bytes calldata message

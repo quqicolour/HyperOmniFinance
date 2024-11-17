@@ -1,16 +1,16 @@
 const hre = require("hardhat");
-const PairABI=require("../artifacts/contracts/HyperStablePair.sol/HyperStablePair.json");
+const PairABI=require("../artifacts/contracts/HyperOmniPair.sol/HyperOmniPair.json");
 const ERC20ABI=require("../artifacts/contracts/TestToken.sol/TestToken.json");
 const WETHABI=require("../artifacts/contracts/WETH.sol/WETH9.json");
-const HyperStableRouter02ABI=require("../artifacts/contracts/HyperStableRouter02.sol/HyperStableRouter02.json");
+const HyperOmniRouter02ABI=require("../artifacts/contracts/HyperOmniRouter02.sol/HyperOmniRouter02.json");
 const HyperCrossFiRouterABI=require("../artifacts/contracts/HyperCrossFiRouter.sol/HyperCrossFiRouter.json");
-const HyperStableFactoryABI=require("../artifacts/contracts/HyperStableFactory.sol/HyperStableFactory.json");
+const HyperOmniFactoryABI=require("../artifacts/contracts/HyperOmniFactory.sol/HyperOmniFactory.json");
 /**
     WETH Address: 0x4805B6E921465EE0766d359c03B9A478cb2A6bbc
     USDC Address: 0x7C4b5B71363Def9178453553C9D7A8789cD60908
     USDT Address: 0x0a572426cBd8e9495b9543bE87CCaBfd7a85993C
-    HyperStableFactory Address: 0x1c987fFa0f80f38d8BD59B96d5903Cf9E7D1df15
-HyperStableRouter Address: 0x5793e20336Cd597e7D2AC55557df1384A673a7BA
+    HyperOmniFactory Address: 0x1c987fFa0f80f38d8BD59B96d5903Cf9E7D1df15
+HyperOmniRouter Address: 0x5793e20336Cd597e7D2AC55557df1384A673a7BA
 HyperCrossFiRouter address: 0x47B2a77fFb95282C67A2F746d0C2330213ce26AD
  * 
  */
@@ -19,10 +19,10 @@ async function main() {
     console.log("owner:",owner.address);
     const provider = ethers.provider;
 
-    // const hyperStableFactory = await ethers.getContractFactory("HyperStableFactory");
-    // const HyperStableFactory = await hyperStableFactory.deploy(owner.address);
-    // const HyperStableFactoryAddress = await HyperStableFactory.target;
-    // console.log("HyperStableFactory Address:",HyperStableFactoryAddress);
+    // const hyperOmniFactory = await ethers.getContractFactory("HyperOmniFactory");
+    // const HyperOmniFactory = await hyperOmniFactory.deploy(owner.address);
+    // const HyperOmniFactoryAddress = await HyperOmniFactory.target;
+    // console.log("HyperOmniFactory Address:",HyperOmniFactoryAddress);
   
     // const wETH9 = await ethers.getContractFactory("WETH9");
     // const WETH = await wETH9.deploy();
@@ -47,31 +47,31 @@ async function main() {
     const USDC=new ethers.Contract(USDCAddress,ERC20ABI.abi,owner);
     const WETH=new ethers.Contract(WETHAddress,WETHABI.abi,owner);
   
-    // const hyperStableRouter02 = await ethers.getContractFactory("HyperStableRouter02");
-    // const HyperStableRouter = await hyperStableRouter02.deploy(HyperStableFactoryAddress, WETHAddress);
-    // const HyperStableRouterAddress = await HyperStableRouter.target;
-    // console.log("HyperStableRouter Address:",HyperStableRouterAddress);
+    // const hyperOmniRouter02 = await ethers.getContractFactory("HyperOmniRouter02");
+    // const HyperOmniRouter02 = await hyperOmniRouter02.deploy(HyperOmniFactoryAddress, WETHAddress);
+    // const HyperOmniRouterAddress = await HyperOmniRouter02.target;
+    // console.log("HyperOmniRouter02 Address:",HyperOmniRouterAddress);
 
-    const HyperStableFactoryAddress="0x1c987fFa0f80f38d8BD59B96d5903Cf9E7D1df15";
-    const HyperStableRouterAddress="0x5793e20336Cd597e7D2AC55557df1384A673a7BA";
+    const HyperOmniFactoryAddress="0x1c987fFa0f80f38d8BD59B96d5903Cf9E7D1df15";
+    const HyperOmniRouterAddress="0x5793e20336Cd597e7D2AC55557df1384A673a7BA";
     const HyperCrossFiRouterAddress="0x47B2a77fFb95282C67A2F746d0C2330213ce26AD";
   
-    const HyperStableRouter=new ethers.Contract(HyperStableRouterAddress,HyperStableRouter02ABI.abi,owner);
-    const HyperStableFactory=new ethers.Contract(HyperStableFactoryAddress,HyperStableFactoryABI.abi,owner);
+    const HyperOmniRouter=new ethers.Contract(HyperOmniRouterAddress,HyperOmniRouter02ABI.abi,owner);
+    const HyperOmniFactory=new ethers.Contract(HyperOmniFactoryAddress,HyperOmniFactoryABI.abi,owner);
     const HyperCrossFiRouter=new ethers.Contract(HyperCrossFiRouterAddress,HyperCrossFiRouterABI.abi,owner);
 
     const opVizingPad="0x4577A9D09AE42913fC7c4e0fFD87E3C60CE3bb1b";
     const arbChainId=421614;
     // const hyperCrossFiRouter = await ethers.getContractFactory("HyperCrossFiRouter");
-    // const HyperCrossFiRouter = await hyperCrossFiRouter.deploy(opVizingPad,HyperStableFactoryAddress, WETHAddress);
+    // const HyperCrossFiRouter = await hyperCrossFiRouter.deploy(opVizingPad,HyperOmniFactoryAddress, WETHAddress);
     // const HyperCrossFiRouterAddress =await HyperCrossFiRouter.target;
     // console.log("HyperCrossFiRouter address:",HyperCrossFiRouterAddress);
 
 
     //approve
     // const approveAmount=ethers.parseEther("10000000");
-    // await USDC.approve(HyperStableRouterAddress, approveAmount);
-    // await USDT.approve(HyperStableRouterAddress, approveAmount);
+    // await USDC.approve(HyperOmniRouterAddress, approveAmount);
+    // await USDT.approve(HyperOmniRouterAddress, approveAmount);
     // console.log("Approve success🥳🥳🥳");
 
     // const block = await provider.getBlock("latest");
@@ -89,7 +89,7 @@ async function main() {
     //   deadline: currentTimestamp
     // };
 
-    // await HyperStableRouter.addLiquidity(
+    // await HyperOmniRouter.addLiquidity(
     //   liquidityParams.tokenA,
     //   liquidityParams.tokenB,
     //   liquidityParams.amountADesired,
@@ -102,7 +102,7 @@ async function main() {
     // console.log("AddLiquidity success 🎉🎉🎉");
 
     // //add weth-usdc 
-    // const wethApprove=await WETH.approve(HyperStableRouterAddress, approveAmount);
+    // const wethApprove=await WETH.approve(HyperOmniRouterAddress, approveAmount);
     // await wethApprove.wait()
     // console.log("Weth approve success");
 
@@ -120,7 +120,7 @@ async function main() {
     // await depositETH.wait();
     // console.log("Deposite eth success");
 
-    // await HyperStableRouter.addLiquidity(
+    // await HyperOmniRouter.addLiquidity(
     //   liquidityParams2.tokenA,
     //   liquidityParams2.tokenB,
     //   liquidityParams2.amountADesired,
@@ -133,7 +133,7 @@ async function main() {
     // console.log("Add weth-usdc liquidity success 🎉🎉🎉");
 
     //add weth-usdt
-    // const wethApprove=await WETH.approve(HyperStableRouterAddress, approveAmount);
+    // const wethApprove=await WETH.approve(HyperOmniRouterAddress, approveAmount);
     // await wethApprove.wait()
     // console.log("Weth approve success");
 
@@ -151,7 +151,7 @@ async function main() {
     // await depositETH.wait();
     // console.log("Deposite eth success");
 
-    // await HyperStableRouter.addLiquidity(
+    // await HyperOmniRouter.addLiquidity(
     //   liquidityParams2.tokenA,
     //   liquidityParams2.tokenB,
     //   liquidityParams2.amountADesired,
